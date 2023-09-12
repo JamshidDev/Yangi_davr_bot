@@ -7,7 +7,7 @@ mongoose.connect(DB_CONNECTION_STRING, {
     useNewUrlParser: true,
     useUnifiedTopology:true,
 }).then(()=>{
-console.log("Connected to mondodb...");
+console.log("Connected to mongodb...");
 }).catch((error)=>{
-    console.log("Mongoose conneect error ---> \n" +error);
+    console.log("Mongoose connect error ---> \n" +error);
 })
