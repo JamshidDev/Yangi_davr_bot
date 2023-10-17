@@ -6,7 +6,7 @@ const { Bot, session, MemorySessionStorage, Keyboard, InlineKeyboard, InputFile,
 //     createConversation,
 // } = require("@grammyjs/conversations");
 require('dotenv').config()
-const Database = require("./db");
+// const Database = require("./db");
 const customLogger = require("./config/customLogger");
 // const { check_user,register_user, remove_user, set_user_lang } = require("./controllers/userController");
 

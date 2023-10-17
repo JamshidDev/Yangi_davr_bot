@@ -6,6 +6,7 @@ const {
     createConversation,
 } = require("@grammyjs/conversations");
 const { check_user, register_user, remove_user, set_user_lang } = require("../controllers/userController");
+const userService = require("../service/services/userService")
 
 const client_bot = new Composer();
 const i18n = new I18n({
@@ -20,66 +21,100 @@ client_bot.use(i18n);
 
 const pm = client_bot.chatType("private")
 
+// pm.use(createConversation(back_course_conversation));
 
-const language_menu = new Menu("language_menu")
+
+
+
+
+
+
+// async function back_course_conversation(conversation, ctx) {
+//     await ctx.reply(`👇 Kursni tanlang`, {
+//         reply_markup: course_list_menu
+//     })
+//     return;
+// }
+
+const library_menu = new Menu("library_menu")
     .dynamic(async (ctx, range) => {
-        let list = [{
-            name: "language_uz",
-            key: "uz"
-        },
-        {
-            name: "language_ru",
-            key: "ru"
-        }
-        ]
+        let list = await ctx.session.session_db.library_list
         list.forEach((item) => {
             range
-                .text(ctx.t(item.name), async (ctx) => {
+                .text(item.name, async (ctx) => {
                     await ctx.answerCallbackQuery();
-                    await ctx.i18n.setLocale(item.key);
-                    data = {
-                        user_id: ctx.from.id,
-                        lang: item.key
-                    }
-                    await set_user_lang(data);
-                    await ctx.deleteMessage();
+                    await ctx.replyWithDocument(item.file.url_path)
+
 
                 })
                 .row();
         })
     })
-pm.use(language_menu)
+pm.use(library_menu)
+
+
+const course_list_menu = new Menu("course_list_menu")
+    .dynamic(async (ctx, range) => {
+        let list = await ctx.session.session_db.course_list
+        list.forEach((item) => {
+            range
+                .text(item.titleName, async (ctx) => {
+                    await ctx.answerCallbackQuery();
+                    await ctx.deleteMessage();
+                    const [error, res] = await userService.library_list({ course_id: item.id });
+                    if (!error) {
+                        ctx.session.session_db.library_list = res.data.data;
+                        await ctx.reply(`
+<b>📚 Kursga tegishli kitoblar!</b> 
+
+<i>Kitoblarni yuklash uchun kerakli kitob ustiga bosing!</i>
+                        `, {
+                            parse_mode: "HTML",
+                            reply_markup: library_menu
+                        })
+                    }
+                })
+                .row();
+        })
+    })
+pm.use(course_list_menu)
 
 
 pm.command("start", async (ctx) => {
-    let lang = await ctx.i18n.getLocale();
-    if (!i18n.locales.includes(lang)) {
-        await ctx.i18n.setLocale("uz");
-    }
-    let user = await check_user(ctx.from.id);
-    data = {
-        user_id: ctx.from.id,
-        full_name: ctx.from.first_name,
-        username: ctx.from.username || null,
-        active: true
-    }
-    if (user) {
-        await ctx.i18n.setLocale(user.lang);
-        data.lang = user.lang;
-        await register_user(data);
+    const [error, res] = await userService.course_list();
+    if (!error) {
+        ctx.session.session_db.course_list = res.data;
+        await ctx.reply(`
+<i>👋 Salom <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name}</a>. Yangi davr ta'lim platformasining rasmiy botiga xush kelibsiz!</i>`, {
+            parse_mode: "HTML"
+        })
+        await ctx.reply(`👇 Kursni tanlang`, {
+            reply_markup: course_list_menu
+        })
     } else {
-        lang = await ctx.i18n.getLocale()
-        data.lang = lang;
-        await register_user(data);
+        await ctx.reply(`
+<b>👋 Salom <a href="tg://user?id=${ctx.from.id}">${ctx.from.first_name}</a>. Yangi davr ta'lim platformasining rasmiy botiga xush kelibsiz!</b>`, {
+            parse_mode: "HTML"
+        })
     }
-    await ctx.reply(ctx.t("start_hello_msg", {
-        full_name: ctx.from.first_name,
-        organization_name: "Fashion Market"
-    }), {
-        parse_mode: "HTML",
-        reply_markup: language_menu
-    })
 })
+pm.command('courses', async (ctx) => {
+    const [error, res] = await userService.course_list();
+    if (!error) {
+        ctx.session.session_db.course_list = res.data;
+        await ctx.reply(`👇 Kursni tanlang`, {
+            reply_markup: course_list_menu
+        })
+    } else {
+        await ctx.reply(`<b>⚠️ Kutilmagan xatolik (🐞 SERVER ERROR!)</b>
+        `, {
+            parse_mode: "HTML"
+        })
+    }
+
+})
+
+
 
 
 

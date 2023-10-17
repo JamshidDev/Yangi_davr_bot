@@ -28,6 +28,8 @@ config_bot.use(session({
                     phone: null,
                     full_name: null,
                 },
+                course_list:[],
+                library_list:[],
             }
         },
         storage: new MemorySessionStorage(),
